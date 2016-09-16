@@ -1,0 +1,20 @@
+---
+  - name: check for mount point variable, which will be used for checking space in servers
+    fail:
+      msg: "Mandatory Host Variable missing {{mount_point}}"
+    when: mount_point is not defined
+
+  - name: Disk space of  /var/lib/mysql (Find the diskspae of /var/lib/mysql * 3) use {{ disk_space_mysql }} in the next task
+    shell: du -s /var/lib/mysql | awk '{print $1}'
+    register: disk_space_mysql
+    ignore_errors: True
+
+  - name: Available space in mount point
+    shell: df -k | grep {{mount_point}}$ |awk '{print $4}'
+    register: mount_point_space
+    ignore_errors: True
+
+  - name: Fail if Diskspace is not sufficient (<25%)  Change this to 3 times of current mysql folder
+    fail:
+     msg: "There is no sufficient free space to perform this operation"
+    when: mount_point_space.stdout|int < disk_space_mysql.stdout|int * 3

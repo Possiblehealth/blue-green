@@ -1,0 +1,6 @@
+---
+  - hosts: preprod
+    sudo: yes
+    roles:
+    - pgsql_preprod
+

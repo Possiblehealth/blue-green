@@ -1,0 +1,57 @@
+---
+
+  - name: stop replication
+    mysql_replication:
+     mode: stopslave
+     login_user: "{{ mysql_root_user}}"
+     login_password: "{{ mysql_root_password }}"
+    ignore_errors: true
+
+  - name: Reset slave
+    mysql_replication:
+      mode: resetslaveall
+      login_user: "{{ mysql_root_user}}"
+      login_password: "{{ mysql_root_password }}"
+    ignore_errors: true
+
+  - name: Stop Mysql Service
+    service: name=mysqld state=stopped
+
+
+  - name: Copy mysql config
+    template:
+      src=templates/my.cnf.m2
+      dest=/etc/my.cnf
+      backup=yes
+      mode=755
+
+  - name: Start Mysql Service
+    service: name=mysqld state=started enabled=true
+
+  - name: Restart PostgreSQL
+    service:
+      name=postgresql-9.2
+      state=restarted
+    ignore_errors: true
+
+  - name: Switch postgres
+    command: /usr/pgsql-9.2/bin/pg_ctl promote -D /var/lib/pgsql/9.2/data
+    become: yes
+    become_user: postgres
+    ignore_errors: true
+
+
+  - name: Copy pg_hba conf
+    template:
+      src=templates/pg_hba.conf.m2
+      dest=/var/lib/pgsql/9.2/data/pg_hba.conf
+      owner=postgres
+      group=postgres
+      backup=yes
+      mode=644
+
+  - name: Restart PostgreSQL
+    service:
+      name=postgresql-9.2
+      state=restarted
+    ignore_errors: true

@@ -1,0 +1,69 @@
+---
+
+  - name: Create and grant privileges to root user on current_ip
+    sudo: yes
+    mysql_user:
+      name: "{{ mysql_root_user }}"
+      password: "{{ mysql_root_password }}"
+      login_user: root
+      login_password: "{{ mysql_root_password }}"
+      host: "{{ groups['preprod'][0]}}"
+      priv: "openmrs.*:ALL,GRANT"
+
+  - name: Create and grant privileges to openmrs user from app server
+    sudo: yes
+    mysql_user:
+      name: "{{ openmrs_db_username }}"
+      password: "{{ openmrs_db_password }}"
+      login_user: root
+      login_password: "{{ mysql_root_password }}"
+      host: "{{ groups['preprod'][0]}}"
+      priv: "openmrs.*:ALL,GRANT"
+
+  - name: Run Implementation Config Openmrs Migrations
+    shell: /opt/bahmni-installer/bahmni-playbooks/roles/implementation-config/files/run-implementation-openmrs-liquibase.sh
+
+  - name: Run Bahmni-Lab-Connect Migrations
+    shell: /opt/bahmni-lab-connect/run-liquibase.sh
+
+  - name: Run Implementation Config Openelis Migrations
+    shell: /opt/bahmni-installer/bahmni-playbooks/roles/bahmni-lab/files/run-implementation-openelis-liquibase.sh
+
+  - name: Run Bahmni-ERP-Connect Migrations
+    shell: /opt/bahmni-erp-connect/etc/run-liquibase.sh
+
+  - name: Run Implementation Config Openerp Migrations
+    shell: /opt/bahmni-installer/bahmni-playbooks/roles/bahmni-erp/files/run-implementation-openerp-liquibase.sh
+
+  - name: Update markers with remote IP
+    shell: /opt/openmrs/add_remote_ip_in_openmrs_markers.sh
+
+  - name: Update markers with remote IP
+    shell: /opt/bahmni-erp-connect/add_remote_ip_in_openerp_markers.sh
+
+  - name: Update markers with remote IP
+    shell: /opt/bahmni-lab/add_remote_ip_in_openelis_markers.sh
+
+  - name: Update pacs-integration markers with remote IP
+    shell: /opt/pacs-integration/add_remote_ip_in_bahmni_pacs_markers.sh
+
+
+  - name: Switch on bahmni services from checkconfig
+    service: name={{item}} state=started enabled=yes
+    with_items:
+     - dcm4chee
+     - bahmni-lab
+     - bahmni-reports
+     - bahmni-erp-connect
+     - openmrs
+     - openerp
+     - pacs-integration
+
+  - name: Check if bahmni-event-log-service Service Exists
+    stat: path=/etc/init.d/bahmni-event-log-service
+    register: service_status
+
+  - name: Stop bahmni-event-log-service Service
+    service: name=bahmni-event-log-service state=started enabled=yes
+    when: service_status.stat.exists
+

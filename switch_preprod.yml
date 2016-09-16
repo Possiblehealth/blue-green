@@ -1,0 +1,11 @@
+---
+  - hosts: preprod
+    sudo: yes
+    roles:
+      - check_switch
+      - stop_slave
+      - markers_migrations
+
+
+
+

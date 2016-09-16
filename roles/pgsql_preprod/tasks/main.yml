@@ -1,0 +1,80 @@
+---
+  - name: check for mount point variable, which will be used for checking space in servers
+    fail:
+      msg: "Mandatory Host Variable missing {{replication_user}}. The user who has permission in master postgresql to do replication"
+    when: replication_user is not defined
+
+  - name: check for mount point variable, which will be used for checking space in servers
+    fail:
+      msg: "Mandatory Host Variable missing {{master_db}}"
+    when: master_db is not defined
+
+  - name: check for mount point variable, which will be used for checking space in servers
+    fail:
+      msg: "Mandatory Host Variable missing {{mount_point}}"
+    when: mount_point is not defined
+
+  - name: Disk space of  /var/lib/mysql (Find the diskspae of /var/lib/mysql * 3) use {{ disk_space_mysql }} in the next task
+    shell: du -s /var/lib/mysql | awk '{print $1}'
+    register: disk_space_mysql
+    ignore_errors: True
+
+  - name: Available space in mount point
+    shell: df -k | grep {{mount_point}}$ |awk '{print $4}'
+    register: mount_point_space
+    ignore_errors: True
+
+  - name: Fail if Diskspace is not sufficient (3 times of current pgsql folder)
+    fail:
+      msg: "There is no sufficient free space to perform this operation"
+    when: mount_point_space.stdout|int < disk_space_mysql.stdout|int * 3
+
+  - name: Switch off bahmni services from checkconfig
+    service: name={{item}} state=stopped enabled=no
+    with_items:
+     - dcm4chee
+     - bahmni-lab
+     - bahmni-reports
+     - bahmni-erp-connect
+     - openmrs
+     - openerp
+     - pacs-integration
+
+  - name: Check if bahmni-event-log-service Service Exists
+    stat: path=/etc/init.d/bahmni-event-log-service
+    register: service_status
+
+  - name: Stop bahmni-event-log-service Service
+    service: name=bahmni-event-log-service state=stopped enabled=no
+    when: service_status.stat.exists
+
+  - name: Stop PostgreSQL
+    service:
+      name=postgresql-9.2
+      state=stopped
+    ignore_errors: true
+
+  - name: Cleaning up old backup directory
+    file:
+      path=/var/lib/pgsql/9.2/data-backup
+      state=absent
+
+  - name: Taking backup of older data
+    command: mv -f /var/lib/pgsql/9.2/data /var/lib/pgsql/9.2/data-backup
+
+  - name: Starting base backup as replication user
+    shell: sudo -u postgres pg_basebackup -h {{ master_db }} -D /var/lib/pgsql/9.2/data -U {{ replication_user }} -v -P --xlog-method=stream
+
+  - name: copy recovery conf file
+    template:
+        src=recovery.conf.j2
+        dest=/var/lib/pgsql/9.2/data/recovery.conf
+        mode=644
+        owner=postgres
+        group=postgres
+
+  - name: Restart PostgreSQL
+    service:
+      name=postgresql-9.2
+      state=restarted
+    ignore_errors: true

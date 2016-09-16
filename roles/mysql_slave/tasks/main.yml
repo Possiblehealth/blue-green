@@ -1,0 +1,35 @@
+---
+
+  - name: stop replication
+    mysql_replication:
+     mode: stopslave
+     login_user: "{{ mysql_root_user}}"
+     login_password: "{{ mysql_root_password }}"
+    ignore_errors: true
+
+  - name: Stop Mysql Service
+    service: name=mysqld state=stopped
+
+
+  - name: Create /opt/mysql-replication directory
+    file:
+      path=/opt/mysql-replication
+      group={{bahmni_group}}
+      owner={{bahmni_user}}
+      mode=0755
+      state=directory
+      recurse=yes
+
+  - name: Create tar file of data directory (/var/lib/mysql/) and put in x location
+    shell: cd /var/lib/ && tar -cf /opt/mysql-replication/mysql.tar mysql
+#    shell: tar -f /opt/mysql-replication/mysql.tar /var/lib/mysql
+
+  - name: Start Mysql Service
+    service: name=mysqld state=started enabled=true
+
+  - name: start replication
+    mysql_replication:
+     mode: startslave
+     login_user: "{{ mysql_root_user}}"
+     login_password: "{{ mysql_root_password }}"
+    ignore_errors: true

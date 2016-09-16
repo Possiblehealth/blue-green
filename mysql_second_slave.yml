@@ -1,0 +1,16 @@
+---
+- hosts: all
+  sudo: yes
+  roles:
+  - common
+
+- hosts: slave
+  sudo: yes
+  roles:
+  - mysql_slave
+
+- hosts: preprod
+  sudo: yes
+  roles:
+  - mysql_preprod
+

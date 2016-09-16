@@ -1,0 +1,83 @@
+---
+  - name: Check that the run-implementation-openmrs-liquibase.sh exists
+    stat: path=/opt/bahmni-installer/bahmni-playbooks/roles/implementation-config/files/run-implementation-openmrs-liquibase.sh
+    register: mrs_conf_migration_file
+
+  - name: Fail if mrs_conf_migration_file not found
+    fail:
+     msg: "File not found run-implementation-openmrs-liquibase.sh"
+    when: mrs_conf_migration_file.stat.exists == False
+
+  - name: Check that the lab run-liquibase.sh exists
+    stat: path=/opt/bahmni-lab-connect/run-liquibase.sh
+    register: lab_migration_file
+
+  - name: Fail if lab_migration_file not found
+    fail:
+     msg: "File not found lab run-liquibase.sh"
+    when: lab_migration_file.stat.exists == False
+
+  - name: Check that the erp - run-liquibase.sh exists
+    stat: path=/opt/bahmni-erp-connect/etc/run-liquibase.sh
+    register: erp_migration_file
+
+  - name: Fail if erp_migration_file not found
+    fail:
+     msg: "File not found erp run-liquibase.sh"
+    when: erp_migration_file.stat.exists == False
+
+
+  - name: Check that the run-implementation-openelis-liquibase.sh exists
+    stat: path=/opt/bahmni-installer/bahmni-playbooks/roles/bahmni-lab/files/run-implementation-openelis-liquibase.sh
+    register: lab_conf_migration_file
+
+  - name: Fail if lab_conf_migration_file not found
+    fail:
+     msg: "File not found run-implementation-openelis-liquibase.sh"
+    when: lab_conf_migration_file.stat.exists == False
+
+  - name: Check that the run-implementation-openerp-liquibase.sh exists
+    stat: path=/opt/bahmni-installer/bahmni-playbooks/roles/bahmni-erp/files/run-implementation-openerp-liquibase.sh
+    register: erp_conf_migration_file
+
+  - name: Fail if erp_conf_migration_file not found
+    fail:
+     msg: "File not found run-implementation-openerp-liquibase.sh"
+    when: erp_conf_migration_file.stat.exists == False
+
+  - name: Check that the add_remote_ip_in_openmrs_markers.sh exists
+    stat: path=/opt/openmrs/add_remote_ip_in_openmrs_markers.sh
+    register: mrs_marker_file
+
+  - name: Fail if mrs_marker_file not found
+    fail:
+     msg: "File not found add_remote_ip_in_openmrs_markers.sh"
+    when: mrs_marker_file.stat.exists == False
+
+  - name: Check that the add_remote_ip_in_openerp_markers.sh exists
+    stat: path=/opt/bahmni-erp-connect/add_remote_ip_in_openerp_markers.sh
+    register: erp_marker_file
+
+  - name: Fail if erp_marker_file not found
+    fail:
+     msg: "File not found add_remote_ip_in_openerp_markers.sh"
+    when: erp_marker_file.stat.exists == False
+
+  - name: Check that the run-implementation-openmrs-liquibase.sh exists
+    stat: path=/opt/bahmni-lab/add_remote_ip_in_openelis_markers.sh
+    register: lab_marker_file
+
+  - name: Fail if lab_marker_file not found
+    fail:
+     msg: "File not found add_remote_ip_in_openelis_markers.sh"
+    when: lab_marker_file.stat.exists == False
+
+  - name: Check that the add_remote_ip_in_bahmni_pacs_markers.sh exists
+    stat: path=/opt/pacs-integration/add_remote_ip_in_bahmni_pacs_markers.sh
+    register: pacs_marker_file
+
+  - name: Fail if pacs_marker_file not found
+    fail:
+     msg: "File not found add_remote_ip_in_bahmni_pacs_markers.sh"
+    when: pacs_marker_file.stat.exists == False
+

@@ -1,0 +1,9 @@
+52.66.131.00 ansible_ssh_host=52.66.131.00 ansible_ssh_user=centos ansible_ssh_private_key_file=/root/.ssh/id_rsa
+52.66.132.00 ansible_ssh_host=52.66.132.00 ansible_ssh_user=centos ansible_ssh_private_key_file=/root/.ssh/id_rsa
+
+
+[slave]
+52.66.131.00 mount_point=/home
+
+[preprod]
+52.66.131.00 mount_point=/ master_db=172.31.8.8  replication_user=openerp

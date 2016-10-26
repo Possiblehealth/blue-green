@@ -14,3 +14,18 @@
   roles:
   - mysql_preprod
 
+- hosts: preprod
+  sudo: yes
+  tasks:
+  - name: Cleaning tar
+    file:
+      path=/var/lib/mysql.tar
+      state=absent
+
+- hosts: slave
+  sudo: yes
+  tasks:
+  - name: Cleaning tar
+    file:
+      path=/opt/mysql-replication/mysql.tar
+      state=absent

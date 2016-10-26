@@ -24,6 +24,11 @@
   - name: Stop Mysql Service
     service: name=mysqld state=stopped
 
+  - name: Cleaning up old backup directory
+    file:
+      path=/var/lib/mysql_bkp
+      state=absent
+
   - name: Taking backup of older data
     command: mv -f /var/lib/mysql /var/lib/mysql_bkp
 
@@ -34,21 +39,10 @@
       backup=yes
       mode=755
 
-  - name: Create /home/mysql-replication directory
-    file:
-      path=/home/mysql-replication
-      owner={{ ansible_ssh_user }}
-      mode=0755
-      state=directory
-      recurse=yes
-
   - name: Fetch mysql dump from slave master machine to preprod machine
-    fetch: src=/opt/mysql-replication/mysql.tar  dest=/home/mysql-replication flat=yes fail_on_missing=yes
+    fetch: src=/opt/mysql-replication/mysql.tar  dest=/var/lib/ flat=yes fail_on_missing=yes
     sudo: no
     delegate_to: "{{ groups['slave'][0] }}"
-
-  - name: move mysql
-    command: mv /home/mysql-replication/mysql.tar  /var/lib/
 
   - name: untar to /var/lib
     unarchive: src=/var/lib/mysql.tar dest=/var/lib/ group=mysql owner=mysql

@@ -1,0 +1,64 @@
+---
+
+  - name: Switch off bahmni services from checkconfig
+    service: name={{item}} state=stopped enabled=no
+    with_items:
+     - dcm4chee
+     - bahmni-lab
+     - bahmni-reports
+     - bahmni-erp-connect
+     - openmrs
+     - openerp
+     - pacs-integration
+
+
+  - name: Check if bahmni-event-log-service Service Exists
+    stat: path=/etc/init.d/bahmni-event-log-service
+    register: service_status
+
+  - name: Stop bahmni-event-log-service Service
+    service: name=bahmni-event-log-service state=stopped enabled=no
+    when: service_status.stat.exists
+
+
+  - name: Stop Mysql Service
+    service: name=mysqld state=stopped
+    when: inventory_hostname in groups['preprod']
+
+  - name: Copy mysql config
+    template:
+      src=templates/my.cnf.j2
+      dest=/etc/my.cnf
+      backup=yes
+      mode=755
+    when: inventory_hostname in groups['preprod']
+
+  - name: Start Mysql Service
+    service: name=mysqld state=started enabled=true
+
+  - name: Stop Slave Thread
+    command: /usr/bin/mysql -u{{ mysql_root_user}} -p{{ mysql_root_password }} -e "STOP SLAVE IO_THREAD"
+
+  - name: start replication
+    mysql_replication:
+      mode: stopslave
+      login_user: "{{ mysql_root_user}}"
+      login_password: "{{ mysql_root_password }}"
+    ignore_errors: true
+
+  - name: Reset master binlog
+    command: /usr/bin/mysql -u{{ mysql_root_user}} -p{{ mysql_root_password }} -e "RESET MASTER"
+    when: inventory_hostname in groups['preprod']
+
+  - name: change master parameters on slave to start the replication
+    command: /usr/bin/mysql -u{{ mysql_root_user}} -p{{ mysql_root_password }} -e "CHANGE MASTER TO MASTER_HOST='{{ groups['preprod'][0] }}'"
+    when: inventory_hostname in groups['slave']
+
+  - name: start replication
+    mysql_replication:
+      mode: startslave
+      login_user: "{{ mysql_root_user}}"
+      login_password: "{{ mysql_root_password }}"
+    ignore_errors: true
+    when: inventory_hostname in groups['slave']
+

@@ -1,0 +1,74 @@
+---
+
+  - name: Switch off bahmni services from checkconfig
+    service: name={{item}} state=stopped enabled=no
+    with_items:
+     - dcm4chee
+     - bahmni-lab
+     - bahmni-reports
+     - bahmni-erp-connect
+     - openmrs
+     - openerp
+     - pacs-integration
+
+
+  - name: Check if bahmni-event-log-service Service Exists
+    stat: path=/etc/init.d/bahmni-event-log-service
+    register: service_status
+
+  - name: Stop bahmni-event-log-service Service
+    service: name=bahmni-event-log-service state=stopped enabled=no
+    when: service_status.stat.exists
+
+
+  - name: Switch postgres
+    command: /usr/pgsql-9.2/bin/pg_ctl promote -D /var/lib/pgsql/9.2/data
+    become: yes
+    become_user: postgres
+    when: inventory_hostname in groups['preprod']
+
+  - name: Add slave ip to pg_hba
+    lineinfile:
+      dest=/var/lib/pgsql/9.2/data/pg_hba.conf
+      line="host    replication             openerp             {{ groups['slave'][0] }}/32     trust"
+    when: inventory_hostname in groups['preprod']
+
+  - name: Copy recovery conf
+    template:
+      src=recovery.conf.j2
+      dest=/var/lib/pgsql/9.2/data/recovery.conf
+      mode=644
+      owner=postgres
+      group=postgres
+      backup=yes
+    when: inventory_hostname in groups['slave']
+
+  - name: Set history file name
+    shell: ls -1 /var/lib/pgsql/9.2/data/pg_xlog/*.history
+    register: history_file
+    become_user: postgres
+    when: inventory_hostname in groups['preprod']
+
+  - name: Copy history to tmp location
+    copy: src={{ history_file.stdout }} dest=/tmp/history.postgres mode=0644
+    become_user: postgres
+    when: inventory_hostname in groups['preprod']
+
+  - name: Copy history file from preprod to slave
+    fetch: src=/tmp/history.postgres  dest=/tmp/ flat=yes fail_on_missing=yes
+    sudo: yes
+    delegate_to: "{{ groups['preprod'][0] }}"
+    when: inventory_hostname in groups['slave']
+
+  - debug: var=hostvars[groups['preprod'][0]].get('history_file').stdout verbosity=2
+    when: inventory_hostname in groups['slave']
+
+  - name: Copy history from tmp location
+    copy: dest={{ hostvars[groups['preprod'][0]].get('history_file').stdout}} src=/tmp/history.postgres mode=0644 owner=postgres group=postgres
+    when: inventory_hostname in groups['slave']
+
+  - name: Restart PostgreSQL
+    service:
+      name=postgresql-9.2
+      state=restarted
+    ignore_errors: true

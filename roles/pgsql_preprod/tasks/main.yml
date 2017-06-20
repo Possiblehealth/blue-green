@@ -20,7 +20,7 @@
     ignore_errors: True
 
   - name: Available space in mount point
-    shell: df -k | grep {{mount_point}}$ |awk '{print $4}'
+    shell: df -k | grep {{mount_point}}$ |awk '{print $3}'
     register: mount_point_space
     ignore_errors: True
 
